@@ -1,11 +1,24 @@
 package ca.jakegreene.sortable
 
 import scala.io._
+import scala.concurrent.duration._
 import com.github.nscala_time.time.Imports._
 import spray.json._
 import java.io.File
 import java.io.FileWriter
 import java.io.BufferedWriter
+import akka.actor.ActorSystem
+import akka.actor.Props
+import akka.pattern.ask
+import akka.util.Timeout
+import akka.dispatch.Futures
+import scala.actors.Future
+import scala.actors.Future
+import scala.parallel.Future
+import scala.concurrent.Future
+import scala.concurrent.Await
+import scala.util.Failure
+import scala.util.Success
 
 case class Product(product_name: String, manufacturer: String, family: Option[String], model: String, announced_date: DateTime)
 case class Listing(title: String, manufacturer: String, currency: String, price: String)
@@ -14,6 +27,7 @@ case class Result(product_name: String, listings: List[Listing])
 object SortableChallenge extends App {
   
 	import MatchingJsonProtocol._
+	import MatchingActor._
 	
 	// Some of the product names and listing titles use UTF-8 characters
 	implicit val codec: Codec = Codec.UTF8
@@ -33,18 +47,29 @@ object SortableChallenge extends App {
 	val listingLines = Source.fromFile("data/listings.txt").getLines
 	val listings = listingLines.map(line => line.asJson.convertTo[Listing]).toList
 	
-	private def findMatchingListings(product: Product, listings: Iterable[Listing]): List[Listing] = {
-	  val productName = product.product_name.replace('_', ' ')
-	  listings.filter(listing => listing.title.contains(productName)).toList
-	}
+	val actorSystem = ActorSystem("MatchingSystem")
+	implicit val timeout = Timeout(DurationInt(5).second)
+	val futures = for {
+	  productGroup <- products.grouped(100)
+	  matcher = actorSystem.actorOf(Props[MatchingActor])
+	  resultFuture = ask(matcher, FindMatches(productGroup, listings)).mapTo[FoundMatches]
+	} yield resultFuture
 	
-	val results = products.map(product => Result(product.product_name, findMatchingListings(product, listings.toIterable))).toList
-	
-	val writer = new BufferedWriter(new FileWriter(new File("results.txt")))
-	for (result <- results) {
-	  val json = result.toJson
-	  writer.write(json.prettyPrint + "\n")
+	import actorSystem.dispatcher
+	// We need to fold the future results by appending all of the result lists
+	val resultFuture = Future.fold(futures)(List[Result]()) { (acc, foundMatches) =>
+	  acc ++ foundMatches.results
+	} onComplete {
+	  case Success(results) => {
+		val writer = new BufferedWriter(new FileWriter(new File("results.txt")))
+	    results.foreach(result => writer.write(result.toJson.prettyPrint + "\n"))
+	    writer.close()
+	    println("Matching Complete")
+	    actorSystem.shutdown()
+	  }
+	  case Failure(failure) => {
+	    println(s"Failure Getting Results: $failure")
+	    actorSystem.shutdown()
+	  }
 	}
-	writer.close()
-	println("Matching Complete")
 }
