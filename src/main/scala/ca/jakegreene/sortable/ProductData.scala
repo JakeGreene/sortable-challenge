@@ -16,7 +16,7 @@ trait ProductData {
 	def listings: List[Listing]
 }
 
-trait ProductDataFromFile extends ProductData with MatchingJsonProtocol { 
+trait ProductDataFromFile extends ProductData with DataJsonProtocol { 
   
 	// Some of the product names and listing titles use UTF-8 characters
 	implicit val codec: Codec = Codec.UTF8

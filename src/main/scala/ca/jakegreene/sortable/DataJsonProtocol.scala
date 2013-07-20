@@ -17,7 +17,7 @@ trait DateTimeJsonProtocol extends DefaultJsonProtocol {
   }
 }
 
-trait MatchingJsonProtocol extends DefaultJsonProtocol with DateTimeJsonProtocol { 
+trait DataJsonProtocol extends DefaultJsonProtocol with DateTimeJsonProtocol { 
   implicit val productFormat = jsonFormat5(Product)
   implicit val listingFormat = jsonFormat4(Listing)
   implicit val resultFormat = jsonFormat2(Result)
