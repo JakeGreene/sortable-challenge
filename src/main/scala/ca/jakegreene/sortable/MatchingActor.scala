@@ -23,7 +23,9 @@ class MatchingActor extends Actor with ActorLogging {
 	}
 		
 	private def findMatchingListings(product: Product, listings: Iterable[Listing]): List[Listing] = {
-	  val productName = product.product_name.replace('_', ' ')
-	  listings.filter(listing => listing.title.contains(productName)).toList
+	  listings.filter(listing => {
+	    listing.title.contains(product.model) && (listing.title.contains(product.manufacturer) || 
+	    										listing.title.contains(product.family))
+	  }).toList
 	}
 }
