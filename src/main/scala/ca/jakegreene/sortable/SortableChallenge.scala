@@ -55,14 +55,13 @@ object SortableChallenge extends App {
 	  resultFuture = ask(matcher, FindMatches(productGroup, listings)).mapTo[FoundMatches]
 	} yield resultFuture
 	
-	import actorSystem.dispatcher
-	// We need to fold the future results by appending all of the result lists
+	import actorSystem.dispatcher // The dispatcher will be our execution context
 	val resultFuture = Future.fold(futures)(List[Result]()) { (acc, foundMatches) =>
 	  acc ++ foundMatches.results
 	} onComplete {
 	  case Success(results) => {
 		val writer = new BufferedWriter(new FileWriter(new File("results.txt")))
-	    results.foreach(result => writer.write(result.toJson.prettyPrint + "\n"))
+	    results.foreach(result => writer.write(result.toJson + "\n"))
 	    writer.close()
 	    println("Matching Complete")
 	    actorSystem.shutdown()
