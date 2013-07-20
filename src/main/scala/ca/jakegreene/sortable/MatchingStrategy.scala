@@ -6,9 +6,9 @@ trait MatchingStrategy {
 
 trait ExplicitMatchingStrategy extends MatchingStrategy {
     override def findMatches(product: Product, listings: List[Listing]): List[Listing] = {
-      listings.filter({ listing => 
+      listings.filter( listing => 
 	    listing.title.contains(product.model) && (listing.title.contains(product.manufacturer) || 
 	    										  listing.title.contains(product.family))
-	  }).toList
+	  ).toList
     }
 }

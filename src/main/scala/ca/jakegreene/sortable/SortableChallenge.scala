@@ -59,9 +59,9 @@ object SortableChallenge extends App with MatchingJsonProtocol {
 	} onComplete {
 	  case Success(results) => {
 		val writer = new BufferedWriter(new FileWriter(new File("results.txt")))
-	    results.foreach({ result => 
+	    results.foreach(result => 
 	      writer.write(result.toJson + "\n")
-	    })
+	    )
 	    writer.close()
 	    println("Matching Complete")
 	    actorSystem.shutdown()
