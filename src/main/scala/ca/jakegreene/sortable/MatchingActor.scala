@@ -10,7 +10,7 @@ object MatchingActor {
   case class FoundMatches(results: List[Result]) extends Output
 }
 
-class MatchingActor extends Actor with ActorLogging with ExplicitMatchingStrategy {
+class MatchingActor extends Actor with ActorLogging { self: MatchingStrategy =>
 	import MatchingActor._
 	
 	def receive = {

@@ -49,7 +49,7 @@ object SortableChallenge extends App with MatchingJsonProtocol {
 	implicit val timeout = Timeout(DurationInt(5).second)
 	val futures = for {
 	  productGroup <- products.grouped(100)
-	  matcher = actorSystem.actorOf(Props[MatchingActor])
+	  matcher = actorSystem.actorOf(Props(new MatchingActor with ExplicitMatchingStrategy))
 	  resultFuture = ask(matcher, FindMatches(productGroup, listings)).mapTo[FoundMatches]
 	} yield resultFuture
 	
