@@ -24,9 +24,7 @@ case class Product(product_name: String, manufacturer: String, family: Option[St
 case class Listing(title: String, manufacturer: String, currency: String, price: String)
 case class Result(product_name: String, listings: List[Listing])
 
-object SortableChallenge extends App {
-  
-	import MatchingJsonProtocol._
+object SortableChallenge extends App with MatchingJsonProtocol {
 	import MatchingActor._
 	
 	// Some of the product names and listing titles use UTF-8 characters
@@ -61,7 +59,9 @@ object SortableChallenge extends App {
 	} onComplete {
 	  case Success(results) => {
 		val writer = new BufferedWriter(new FileWriter(new File("results.txt")))
-	    results.foreach(result => writer.write(result.toJson + "\n"))
+	    results.foreach({ result => 
+	      writer.write(result.toJson + "\n")
+	    })
 	    writer.close()
 	    println("Matching Complete")
 	    actorSystem.shutdown()

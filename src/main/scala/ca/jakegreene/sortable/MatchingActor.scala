@@ -10,22 +10,15 @@ object MatchingActor {
   case class FoundMatches(results: List[Result]) extends Output
 }
 
-class MatchingActor extends Actor with ActorLogging {
+class MatchingActor extends Actor with ActorLogging with ExplicitMatchingStrategy {
 	import MatchingActor._
 	
 	def receive = {
 	  case FindMatches(products, listings) => {
-	    val results = products.map(product => Result(product.product_name, findMatchingListings(product, listings.toIterable))).toList
+	    val results = products.map(product => Result(product.product_name, findMatches(product, listings))).toList
 	    sender ! FoundMatches(results)
 	  }
 	  case out: Output => log.warning(s"$self has received an Output message as input: $out")
 	  case msg => log.warning(s"$self has received an unhandled message: $msg")
-	}
-		
-	private def findMatchingListings(product: Product, listings: Iterable[Listing]): List[Listing] = {
-	  listings.filter(listing => {
-	    listing.title.contains(product.model) && (listing.title.contains(product.manufacturer) || 
-	    										listing.title.contains(product.family))
-	  }).toList
 	}
 }
