@@ -19,18 +19,9 @@ import akka.pattern.ask
 import akka.util.Timeout
 import spray.json.pimpAny
 
-object SortableChallenge extends App with ProductDataFromFile {
+object SortableChallenge extends App with ProductDataFromFile with SystemPreferences {
 	import MatchingActor._
-	
-	val config = ConfigFactory.load()	
-	val matcherConfig = config.getConfig("ca.jakegreene.sortable").withFallback(config)
-	
-	val actorSystem = ActorSystem(matcherConfig.getString("system.system-name"))
-	
-	val timeoutLength = matcherConfig.getInt("system.future-timeout")
-	implicit val timeout = Timeout(DurationInt(timeoutLength).second)
-	
-	val batchSize = matcherConfig.getInt("system.batch-size")
+
 	val futures = for {
 	  productGroup <- products.grouped(batchSize)
 	  matcher = actorSystem.actorOf(Props(new MatchingActor with ExplicitMatchingStrategy))
