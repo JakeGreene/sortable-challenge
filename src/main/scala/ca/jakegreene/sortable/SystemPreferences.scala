@@ -6,9 +6,13 @@ import akka.actor.ActorSystem
 import akka.util.Timeout
 
 trait SystemPreferences {
-	private val config = ConfigFactory.load().getConfig("ca.jakegreene.sortable.system")
+	val config = ConfigFactory.load().getConfig("ca.jakegreene.sortable.system")
+	
 	val actorSystem = ActorSystem(config.getString("system-name"))
-	private val timeoutLength = config.getInt("future-timeout")
+	implicit val executionContext = actorSystem.dispatcher
+	
+	val timeoutLength = config.getInt("future-timeout")
 	implicit val timeout: Timeout = timeoutLength.second
+	
 	val batchSize = config.getInt("batch-size")
 }

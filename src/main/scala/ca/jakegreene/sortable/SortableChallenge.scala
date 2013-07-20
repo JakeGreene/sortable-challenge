@@ -18,32 +18,26 @@ import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import spray.json.pimpAny
+import ca.jakegreene.util.RichFile.enrichFile
 
 object SortableChallenge extends App with ProductDataFromFile with SystemPreferences {
 	import MatchingActor._
 
-	val futures = for {
+	val futureResults = for {
 	  productGroup <- products.grouped(batchSize)
 	  matcher = actorSystem.actorOf(Props(new MatchingActor with ExplicitMatchingStrategy))
-	  resultFuture = ask(matcher, FindMatches(productGroup, listings)).mapTo[FoundMatches]
-	} yield resultFuture
+	  result = ask(matcher, FindMatches(productGroup, listings)).mapTo[FoundMatches]
+	} yield result
 	
-	import actorSystem.dispatcher // The dispatcher will be our execution context
-	val resultFuture = Future.fold(futures)(List[Result]()) { (acc, foundMatches) =>
+	Future.fold(futureResults)(List[Result]()) { (acc, foundMatches) =>
 	  acc ++ foundMatches.results
-	} onComplete {
+	} andThen {
 	  case Success(results) => {
-		val writer = new BufferedWriter(new FileWriter(new File("results.txt")))
-	    results.foreach(result => 
-	      writer.write(result.toJson + "\n")
-	    )
-	    writer.close()
-	    println("Matching Complete")
-	    actorSystem.shutdown()
+	    val output = new File("output.txt")
+	    output.text = results.map(_.toJson).mkString("\n")
 	  }
-	  case Failure(failure) => {
-	    println(s"Failure Getting Results: $failure")
-	    actorSystem.shutdown()
-	  }
+	  case Failure(failure) => println(s"Failure Getting Results: $failure")
+	} andThen {
+	  case _ => actorSystem.shutdown()
 	}
 }
