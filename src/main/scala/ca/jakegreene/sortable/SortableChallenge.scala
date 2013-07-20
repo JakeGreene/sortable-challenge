@@ -6,12 +6,9 @@ import java.io.FileWriter
 
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
-import scala.io.Codec
-import scala.io.Source
 import scala.util.Failure
 import scala.util.Success
 
-import com.github.nscala_time.time.Imports.DateTime
 import com.typesafe.config.ConfigFactory
 
 import MatchingActor.FindMatches
@@ -21,37 +18,12 @@ import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
 import spray.json.pimpAny
-import spray.json.pimpString
 
-case class Product(product_name: String, manufacturer: String, family: Option[String], model: String, announced_date: DateTime)
-case class Listing(title: String, manufacturer: String, currency: String, price: String)
-case class Result(product_name: String, listings: List[Listing])
-
-object SortableChallenge extends App with MatchingJsonProtocol {
+object SortableChallenge extends App with ProductDataFromFile {
 	import MatchingActor._
 	
 	val config = ConfigFactory.load()	
 	val matcherConfig = config.getConfig("ca.jakegreene.sortable").withFallback(config)
-	
-	// Some of the product names and listing titles use UTF-8 characters
-	implicit val codec: Codec = Codec.UTF8
-	
-	private def cleanProductData(productLines: Iterable[String]): List[String] = {
-	  /*
-	   * Scala case classes cannot have dashes "-" in their names
-	   * but spray-json requires the case class member names to be the
-	   * same as the names in the JSON object.
-	   */
-	  productLines.map(line => line.replaceFirst("announced-date", "announced_date")).toList
-	}
-	
-	val productFileName = matcherConfig.getString("data.product")
-	val productLines = cleanProductData(Source.fromFile(productFileName).getLines.toIterable)
-	val products = productLines.map(_.asJson.convertTo[Product]).toList
-	
-	val listingFileName = matcherConfig.getString("data.listing")
-	val listingLines = Source.fromFile(listingFileName).getLines
-	val listings = listingLines.map(line => line.asJson.convertTo[Listing]).toList
 	
 	val actorSystem = ActorSystem(matcherConfig.getString("system.system-name"))
 	
