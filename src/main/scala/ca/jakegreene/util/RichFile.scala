@@ -4,7 +4,7 @@ import java.io._
 import scala.io._
 
 /**
- * Rich file allows for easy one-line write and reads
+ * Rich file allows for easy one-line writes and reads
  * taken from:
  * http://stackoverflow.com/a/6881792/382110
  */

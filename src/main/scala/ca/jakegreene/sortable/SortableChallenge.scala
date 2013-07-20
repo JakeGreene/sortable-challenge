@@ -20,6 +20,22 @@ import akka.util.Timeout
 import spray.json.pimpAny
 import ca.jakegreene.util.RichFile.enrichFile
 
+/**
+ * Sortable Challenge solution. Reads and parses a list of products and a list of
+ * product listings. Attempts to determine which products are contained within
+ * each listing.
+ * 
+ * General Idea:
+ * - Read and Parse the products/listings json into case classes
+ * - Scatter and Gather: Divide the product list into groups, work 
+ *   on the groups independently, then collect and append the results
+ *
+ * Extensions I never got around to:
+ * - Data preprocessing trait to organize the data before the matcher sees it
+ * - Scatter further by dividing the listings into groups. No visible
+ *   improvement on my rinky-dink dual-core laptop so I decided to
+ *   leave it out
+ */
 object SortableChallenge extends App with ProductDataFromFile with SystemPreferences {
 	import MatchingActor._
 
