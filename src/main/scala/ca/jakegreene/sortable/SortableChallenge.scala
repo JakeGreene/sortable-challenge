@@ -1,24 +1,27 @@
 package ca.jakegreene.sortable
 
-import scala.io._
-import scala.concurrent.duration._
-import com.github.nscala_time.time.Imports._
-import spray.json._
+import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
-import java.io.BufferedWriter
+
+import scala.concurrent.Future
+import scala.concurrent.duration.DurationInt
+import scala.io.Codec
+import scala.io.Source
+import scala.util.Failure
+import scala.util.Success
+
+import com.github.nscala_time.time.Imports.DateTime
+import com.typesafe.config.ConfigFactory
+
+import MatchingActor.FindMatches
+import MatchingActor.FoundMatches
 import akka.actor.ActorSystem
 import akka.actor.Props
 import akka.pattern.ask
 import akka.util.Timeout
-import akka.dispatch.Futures
-import scala.actors.Future
-import scala.actors.Future
-import scala.parallel.Future
-import scala.concurrent.Future
-import scala.concurrent.Await
-import scala.util.Failure
-import scala.util.Success
+import spray.json.pimpAny
+import spray.json.pimpString
 
 case class Product(product_name: String, manufacturer: String, family: Option[String], model: String, announced_date: DateTime)
 case class Listing(title: String, manufacturer: String, currency: String, price: String)
@@ -26,6 +29,9 @@ case class Result(product_name: String, listings: List[Listing])
 
 object SortableChallenge extends App with MatchingJsonProtocol {
 	import MatchingActor._
+	
+	val config = ConfigFactory.load()	
+	val matcherConfig = config.getConfig("ca.jakegreene.sortable").withFallback(config)
 	
 	// Some of the product names and listing titles use UTF-8 characters
 	implicit val codec: Codec = Codec.UTF8
@@ -38,17 +44,23 @@ object SortableChallenge extends App with MatchingJsonProtocol {
 	   */
 	  productLines.map(line => line.replaceFirst("announced-date", "announced_date")).toList
 	}
-	  
-	val productLines = cleanProductData(Source.fromFile("data/products.txt").getLines.toIterable)
+	
+	val productFileName = matcherConfig.getString("data.product")
+	val productLines = cleanProductData(Source.fromFile(productFileName).getLines.toIterable)
 	val products = productLines.map(_.asJson.convertTo[Product]).toList
 	
-	val listingLines = Source.fromFile("data/listings.txt").getLines
+	val listingFileName = matcherConfig.getString("data.listing")
+	val listingLines = Source.fromFile(listingFileName).getLines
 	val listings = listingLines.map(line => line.asJson.convertTo[Listing]).toList
 	
-	val actorSystem = ActorSystem("MatchingSystem")
-	implicit val timeout = Timeout(DurationInt(5).second)
+	val actorSystem = ActorSystem(matcherConfig.getString("system.system-name"))
+	
+	val timeoutLength = matcherConfig.getInt("system.future-timeout")
+	implicit val timeout = Timeout(DurationInt(timeoutLength).second)
+	
+	val batchSize = matcherConfig.getInt("system.batch-size")
 	val futures = for {
-	  productGroup <- products.grouped(100)
+	  productGroup <- products.grouped(batchSize)
 	  matcher = actorSystem.actorOf(Props(new MatchingActor with ExplicitMatchingStrategy))
 	  resultFuture = ask(matcher, FindMatches(productGroup, listings)).mapTo[FoundMatches]
 	} yield resultFuture
