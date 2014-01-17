@@ -17,6 +17,7 @@ import akka.util.Timeout
 import spray.json.pimpAny
 import ca.jakegreene.util.RichFile.enrichFile
 import akka.routing.FromConfig
+import scala.collection.immutable.Queue
 
 /**
  * Sortable Challenge solution. Reads and parses a list of products and a list of
@@ -44,7 +45,7 @@ object SortableChallenge extends App with ProductDataFromFile with SystemPrefere
 	  result = ask(matchRouter, FindMatches(productGroup, listings)).mapTo[FoundMatches]
 	} yield result
 	
-	Future.fold(futureResults)(List[Result]()) { (acc, foundMatches) =>
+	Future.fold(futureResults)(Queue[Result]()) { (acc, foundMatches) =>
 	  acc ++ foundMatches.results
 	} andThen {
 	  case Success(results) => {
