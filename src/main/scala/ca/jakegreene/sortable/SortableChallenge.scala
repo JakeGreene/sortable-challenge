@@ -3,14 +3,11 @@ package ca.jakegreene.sortable
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
-
 import scala.concurrent.Future
 import scala.concurrent.duration.DurationInt
 import scala.util.Failure
 import scala.util.Success
-
 import com.typesafe.config.ConfigFactory
-
 import MatchingActor.FindMatches
 import MatchingActor.FoundMatches
 import akka.actor.ActorSystem
@@ -19,6 +16,7 @@ import akka.pattern.ask
 import akka.util.Timeout
 import spray.json.pimpAny
 import ca.jakegreene.util.RichFile.enrichFile
+import akka.routing.FromConfig
 
 /**
  * Sortable Challenge solution. Reads and parses a list of products and a list of
@@ -38,11 +36,12 @@ import ca.jakegreene.util.RichFile.enrichFile
  */
 object SortableChallenge extends App with ProductDataFromFile with SystemPreferences {
 	import MatchingActor._
+	
+	val matchRouter = actorSystem.actorOf(Props(new MatchingActor with ExplicitMatchingStrategy).withRouter(FromConfig()), "matching-router")
 
 	val futureResults = for {
 	  productGroup <- products.grouped(batchSize)
-	  matcher = actorSystem.actorOf(Props(new MatchingActor with ExplicitMatchingStrategy))
-	  result = ask(matcher, FindMatches(productGroup, listings)).mapTo[FoundMatches]
+	  result = ask(matchRouter, FindMatches(productGroup, listings)).mapTo[FoundMatches]
 	} yield result
 	
 	Future.fold(futureResults)(List[Result]()) { (acc, foundMatches) =>
