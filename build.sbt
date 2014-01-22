@@ -15,5 +15,6 @@ scalacOptions := Seq("-unchecked", "-deprecation", "-encoding", "utf8")
 libraryDependencies ++= Seq( 
     "com.typesafe.akka" %% "akka-actor" % "2.1.4",
     "com.github.nscala-time" %% "nscala-time" % "0.4.2",
-    "io.spray" %%  "spray-json" % "1.2.5"
+    "io.spray" %%  "spray-json" % "1.2.5",
+    "com.google.guava" % "guava" % "r09"
 )
